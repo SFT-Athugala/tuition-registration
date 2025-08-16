@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8">
+  <title>Tuition Registration</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f7fa; padding:20px; }
+    .container { max-width:480px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    h2 { text-align:center; }
+    label { display:block; margin-top:12px; }
+    input, select, button { width:100%; padding:10px; margin-top:6px; border:1px solid #ccc; border-radius:6px; }
+    button { background:#007bff; color:#fff; font-weight:bold; cursor:pointer; }
+    button:hover { background:#0056b3; }
+    #downloadBtn { background:green; margin-top:15px; }
+    #downloadBtn:hover { background:darkgreen; }
+  </style>
+  <!-- SheetJS library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>ඉගෙනුම් නව ළියාපදිංචි</h2>
+    <form id="regForm">
+      <label>සම්පූර්ණ නම:</label>
+      <input type="text" id="name" required>
+
+      <label>ජාතික හැඳුනුම්පත් අංකය:</label>
+      <input type="text" id="nic" required>
+
+      <label>දුරකථන අංකය:</label>
+      <input type="tel" id="phone" required>
+
+      <label>A/L අවුරුද්ද:</label>
+      <select id="year" required>
+        <option value="">--තෝරන්න--</option>
+        <option value="2027">2027</option>
+        <option value="2026">2026</option>
+      </select>
+
+      <label>Class Type:</label>
+      <select id="classType" required>
+        <option value="">--තෝරන්න--</option>
+        <option value="online">Online</option>
+        <option value="offline">Offline</option>
+      </select>
+
+      <button type="submit">ලියාපදිංචි වෙන්න</button>
+    </form>
+
+    <!-- Excel Download Button -->
+    <button id="downloadBtn">Download Excel (Multi-Sheets)</button>
+  </div>
+
+  <script>
+    const links = {
+      "2027-online": "https://chat.whatsapp.com/example2027online",
+      "2027-offline": "https://chat.whatsapp.com/example2027offline",
+      "2026-online": "https://chat.whatsapp.com/example2026online",
+      "2026-offline": "https://chat.whatsapp.com/example2026offline"
+    };
+
+    document.getElementById("regForm").addEventListener("submit", function(e){
+      e.preventDefault();
+
+      const name = document.getElementById("name").value;
+      const nic = document.getElementById("nic").value;
+      const phone = document.getElementById("phone").value;
+      const year = document.getElementById("year").value;
+      const type = document.getElementById("classType").value;
+
+      // student data object
+      const student = {Name: name, NIC: nic, Phone: phone, Year: year, ClassType: type};
+
+      // save to localStorage (later export as Excel)
+      let data = JSON.parse(localStorage.getItem("students") || "[]");
+      data.push(student);
+      localStorage.setItem("students", JSON.stringify(data));
+
+      // build redirect key
+      const key = `${year}-${type}`;
+      if(links[key]){
+        alert("ලියාපදිංචිය සාර්ථකයි! දැන් ඔබ WhatsApp group එකට join වෙයි.");
+        window.location.href = links[key];
+      } else {
+        alert("Error: WhatsApp link එක හමු නොවුණා!");
+      }
+
+      // reset form
+      document.getElementById("regForm").reset();
+    });
+
+    // Download Excel with multiple sheets
+    document.getElementById("downloadBtn").addEventListener("click", function(){
+      let data = JSON.parse(localStorage.getItem("students") || "[]");
+      if(data.length === 0){
+        alert("තවමත් ලියාපදිංචි වීම් කිසිවක් නැහැ!");
+        return;
+      }
+
+      // group students by Year + Type
+      const groups = {
+        "2027-online": [],
+        "2027-offline": [],
+        "2026-online": [],
+        "2026-offline": []
+      };
+
+      data.forEach(s => {
+        const key = `${s.Year}-${s.ClassType}`;
+        if(groups[key]){
+          groups[key].push(s);
+        }
+      });
+
+      // create workbook
+      const wb = XLSX.utils.book_new();
+
+      // add sheets for each group
+      Object.keys(groups).forEach(key => {
+        let sheetData = groups[key];
+        if(sheetData.length > 0){
+          const ws = XLSX.utils.json_to_sheet(sheetData);
+          XLSX.utils.book_append_sheet(wb, ws, key.replace("-", "_"));
+        }
+      });
+
+      // export Excel
+      XLSX.writeFile(wb, "students.xlsx");
+    });
+  </script>
+</body>
+</html>
